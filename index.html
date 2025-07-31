@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Live Weather</title>
+  <title>Live Weather & News</title>
   <style>
     /*
      * CSS Styling for the Weather Application
@@ -66,7 +66,7 @@
       background-color: #45a049; /* Darker green on hover */
     }
 
-    #clearButton {
+    #clearButton, #clearNewsButton{
       /* Styling for the clear button (specific color) */
       background-color: #ff4032; /* Red background */
       color: white; /* White text */
@@ -74,23 +74,76 @@
       cursor: pointer; /* Pointer cursor */
     }
 
-    #clearButton:hover {
+    #clearButton:hover, #clearNewsButton:hover {
       background-color: #cb4848; /* Darker red on hover */
     }
 
-    /*
-     * Media queries for responsiveness
-     * Adjusts layout for smaller screens.
-     */
+    
+    /* News specific styling */
+    #news-results {
+        max-height: 400px; /* Limit height and make it scrollable */
+        overflow-y: auto;
+        width: 100%; /* Take full width of its parent */
+        margin-top: 10px;
+        padding-right: 10px; /* Add some padding for scrollbar */
+    }
+
+    .news-article {
+        border-bottom: 1px solid #eee;
+        padding-bottom: 15px;
+        margin-bottom: 15px;
+    }
+
+    .news-article:last-child {
+        border-bottom: none; /* No border for the last article */
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    .news-article h3 {
+        margin-top: 0;
+        margin-bottom: 5px;
+        color: #333;
+    }
+
+    .news-article p {
+        font-size: 0.9em;
+        line-height: 1.5;
+        color: #555;
+        margin-bottom: 5px;
+    }
+
+    .news-article a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .news-article a:hover {
+        text-decoration: underline;
+    }
+
+    .news-source-date {
+        font-size: 0.8em;
+        color: #777;
+    }
+
+
+
+    /* Responsive design for smaller screens */
+
     @media screen and (max-width: 600px) {
       #weather, #news-container {
         max-width: 90%; /* On smaller screens, allow containers to take more width */
       }
     }
+
+  
+    
   </style>
 </head>
 <body>
-  <h1>Live Weather & News</h1>
+  <h1>Live Weather</h1>
 
   <div id="weather">
     <h2>Current Weather</h2>
@@ -99,6 +152,14 @@
     <button id="clearButton" onclick="clearResult()">Clear</button>
     <div id="result"></div>
   </div>
+
+<div id="news-container">
+    <h2>Latest News</h2>
+    <button onclick="getNews()">Get Latest News</button>
+    <button id="clearNewsButton" onclick="clearNews()">Clear</button>
+    <div id="news-results">
+      </div>
+</div>
 
   <script>
     /*
@@ -109,14 +170,15 @@
     // OpenWeatherMap API key (replace with your actual key if sharing publicly, but keep it secure)
     const OPENWEATHER_API_KEY = "71d94710084ff6371dd4f20488e43ab1";
 
+    // News API key (replace with your actual key if sharing publicly, but keep it secure)
+    const NEWS_API_KEY= "eb11feec06204dc3b7355d1c87313177"; // Replace with your actual News API key
     /**
-     * Fetches weather data for the specified city and displays it.
-     * Handles loading states, errors, and successful data display.
+     * Fetches weather data for the specified city using OpenWeatherMap API.
+     * Displays the weather information in the result div.
      */
+   
     async function getWeather() {
-      // Get the city name from the input field, remove leading/trailing whitespace
       const city = document.getElementById("cityInput").value.trim();
-      // Get the div where results will be displayed
       const resultDiv = document.getElementById("result");
 
       // Display "Loading weather..." message immediately
@@ -124,8 +186,6 @@
 
       // Check if the city input is empty
       if (!city) {
-        // If no city is entered, show an error message after a slight delay.
-        // The delay allows the "Loading weather..." message to be seen briefly.
         setTimeout(() => {
           resultDiv.innerHTML = `<p style="color:orange;">Please enter a city name.</p>`;
         }, 500); // 500 milliseconds delay
@@ -151,17 +211,6 @@
           const { country } = data.sys;
           const visibilityKm = data.visibility / 1000; // Convert meters to kilometers
 
-          // Calculate Dew Point (an approximation, potentially not fully robust without more context on formula usage)
-          // This part was commented out in the previous revision, keeping the logic but also noting it.
-          // let dewPoint = 'N/A';
-          // if (typeof tempCelsius === 'number' && typeof humidity === 'number') {
-          //   const a = 17.27;
-          //   const b = 237.7;
-          //   const gamma = (a * tempCelsius) / (b + tempCelsius) + Math.log(humidity / 100);
-          //   dewPoint = (b * gamma) / (a - gamma);
-          //   dewPoint = dewPoint.toFixed(2) + '°C';
-          // }
-
           // Update the result div with formatted weather information
           resultDiv.innerHTML = `
             <h2>${cityName}, ${country}</h2>
@@ -183,10 +232,6 @@
       }
     }
 
-    /**
-     * Event listener that runs when the DOM is fully loaded.
-     * Initializes the input field and displays the initial prompt.
-     */
     document.addEventListener('DOMContentLoaded', (event) => {
       const cityInput = document.getElementById("cityInput");
       cityInput.value = ""; // Clear the input field on page load
@@ -195,16 +240,80 @@
      
     });
 
-    /**
-     * Clears the weather results and resets the input field.
-     * Displays the "Please enter a city name." prompt again.
-     */
+    
     function clearResult() {
       // Display the prompt message in the result area
       document.getElementById("result").innerHTML = `<p style="color:orange;">Please enter a city name.</p>`;
       document.getElementById("cityInput").value = ''; // Clear the input field
       document.getElementById("cityInput").focus(); // Set focus back to the input field
     }
+
+    async function getNews(){
+        const newsResultDiv = document.getElementById("news-results");
+        newsResultDiv.innerHTML = `<p style="text-align: center;">Loading news...</p>`;
+
+        const url = `https://newsapi.org/v2/top-headlines?country=in&apiKey=${NEWS_API_KEY}`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.status === "ok" && data.articles.length > 0) {
+                newsResultDiv.innerHTML = '';
+                data.articles.forEach(article => {
+                    const articleDiv = document.createElement("div");
+                    articleDiv.classList.add("news-article");
+
+                    const title = article.title || "No title available";
+                    const description = article.description || "No description available";
+                    const url = article.url || "#";
+                   const source = article.source.name || "Unknown source";
+
+                    articleDiv.innerHTML = `
+                        <h3><a href="${url}" target="_blank">${title}</a></h3>
+                        <p>${description}</p>
+                        <p class="news-source-date">Source: ${source} | Published: ${publishedAt}</p>
+                    `;
+              newsResultsDiv.appendChild(articleDiv);
+          });
+        } else if (data.status === "ok" && data.articles.length === 0) {
+             newsResultsDiv.innerHTML = `<p style="color:orange;">No news articles found.</p>`;
+        }
+        else {
+          // If API returns an error status or general error message
+          newsResultsDiv.innerHTML = `<p style="color:red;">Error fetching news: ${data.message || 'An unknown error occurred'}</p>`;
+        }
+      } catch (error) {
+        console.error("Error fetching news data:", error);
+        newsResultsDiv.innerHTML = `<p style="color:red;">An error occurred while fetching news data. Please check your API key and try again.</p>`;
+      }
+    }
+
+    /**
+     * Clears the news results div.
+     */
+    function clearNews() {
+      document.getElementById("news-results").innerHTML = `<p style="color:orange;">Click "Get Latest News" to fetch headlines.</p>`;
+    }
+
+
+    /**
+     * Event listener that runs when the DOM is fully loaded.
+     * Initializes the input field and displays the initial prompt.
+     * NEW: Also fetches news on page load.
+     */
+    document.addEventListener('DOMContentLoaded', (event) => {
+      const cityInput = document.getElementById("cityInput");
+      cityInput.value = ""; // Clear the weather input field on page load
+      cityInput.focus(); // Set focus to the weather input field
+
+      // Set initial prompts for both sections
+      document.getElementById("result").innerHTML = `<p style="color:orange;">Please enter a city name.</p>`;
+      clearNews(); // Set initial prompt for news
+
+      // Fetch news automatically on page load
+      getNews();
+    });
+                
   </script>
 </body>
 </html>
