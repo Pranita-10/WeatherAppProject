@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Weather</title>
+  <style>
+    /*
+     * CSS Styling for the Weather Application
+     * This section defines the visual appearance of the web page.
+     */
+
+    body {
+      margin: 0; /* Remove default body margin */
+      font-family: Arial, sans-serif; /* Set a clean font */
+      background: linear-gradient(to right, #4d4942, #9fa0e6); /* Gradient background for visual appeal */
+      display: flex; /* Use flexbox for layout */
+      flex-direction: column; /* Arrange items vertically */
+      align-items: center; /* Center items horizontally */
+      padding: 20px; /* Add some padding around the content */
+    }
+
+    h1 {
+      color: #fff; /* White color for the main title */
+      margin-bottom: 20px; /* Space below the title */
+    }
+
+    h2 {
+      color: #333; /* Dark gray color for section titles */
+      text-align: center; /* Center align section titles */
+    }
+
+    #weather, #news-container {
+      /* Styling for the main content containers (weather and news, though news is not implemented yet) */
+      background: white; /* White background for content boxes */
+      padding: 20px; /* Internal padding */
+      border-radius: 10px; /* Rounded corners */
+      display: flex; /* Use flexbox for internal layout */
+      flex-direction: column; /* Arrange content vertically */
+      align-items: center; /* Center content horizontally */
+      max-width: 500px; /* Maximum width for responsiveness */
+      width: 100%; /* Full width up to max-width */
+      margin-bottom: 20px; /* Space below each container */
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Subtle shadow for depth */
+    }
+
+    input, button {
+      /* Styling for input fields and buttons */
+      margin: 10px; /* Space around inputs and buttons */
+      padding: 10px; /* Internal padding */
+      font-size: 16px; /* Font size */
+      width: 100%; /* Full width within their container */
+      box-sizing: border-box; /* Include padding and border in the element's total width and height */
+      border: 1px solid #ccc; /* Light gray border */
+      border-radius: 5px; /* Slightly rounded corners */
+    }
+
+    button {
+      background-color: #4CAF50; /* Green background for primary button */
+      color: white; /* White text */
+      border: none; /* No border */
+      cursor: pointer; /* Change cursor to pointer on hover */
+    }
+
+    button:hover {
+      background-color: #45a049; /* Darker green on hover */
+    }
+
+    #clearButton {
+      /* Styling for the clear button (specific color) */
+      background-color: #ff4032; /* Red background */
+      color: white; /* White text */
+      border: none; /* No border */
+      cursor: pointer; /* Pointer cursor */
+    }
+
+    #clearButton:hover {
+      background-color: #cb4848; /* Darker red on hover */
+    }
+
+    /*
+     * Media queries for responsiveness
+     * Adjusts layout for smaller screens.
+     */
+    @media screen and (max-width: 600px) {
+      #weather, #news-container {
+        max-width: 90%; /* On smaller screens, allow containers to take more width */
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Live Weather & News</h1>
+
+  <div id="weather">
+    <h2>Current Weather</h2>
+    <input type="text" id="cityInput" placeholder="Enter city name">
+    <button onclick="getWeather()">Get Weather</button>
+    <button id="clearButton" onclick="clearResult()">Clear</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    /*
+     * JavaScript for the Weather Application
+     * Handles fetching weather data and updating the UI.
+     */
+
+    // OpenWeatherMap API key (replace with your actual key if sharing publicly, but keep it secure)
+    const OPENWEATHER_API_KEY = "71d94710084ff6371dd4f20488e43ab1";
+
+    /**
+     * Fetches weather data for the specified city and displays it.
+     * Handles loading states, errors, and successful data display.
+     */
+    async function getWeather() {
+      // Get the city name from the input field, remove leading/trailing whitespace
+      const city = document.getElementById("cityInput").value.trim();
+      // Get the div where results will be displayed
+      const resultDiv = document.getElementById("result");
+
+      // Display "Loading weather..." message immediately
+      resultDiv.innerHTML = `<p style="text-align: center;">Loading weather...</p>`;
+
+      // Check if the city input is empty
+      if (!city) {
+        // If no city is entered, show an error message after a slight delay.
+        // The delay allows the "Loading weather..." message to be seen briefly.
+        setTimeout(() => {
+          resultDiv.innerHTML = `<p style="color:orange;">Please enter a city name.</p>`;
+        }, 500); // 500 milliseconds delay
+        return; // Exit the function if no city is provided
+      }
+
+      // Construct the API URL with the city, API key, and units (metric)
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${OPENWEATHER_API_KEY}&units=metric`;
+
+      try {
+        // Make the API request to OpenWeatherMap
+        const response = await fetch(url);
+        // Parse the JSON response
+        const data = await response.json();
+
+        // Check if the API response indicates success (HTTP status 200)
+        if (data.cod === 200) {
+          // Destructure relevant data for easier access
+          const { temp: tempCelsius, humidity, pressure } = data.main;
+          const { speed: windSpeed } = data.wind;
+          const { description } = data.weather[0];
+          const { name: cityName } = data;
+          const { country } = data.sys;
+          const visibilityKm = data.visibility / 1000; // Convert meters to kilometers
+
+          // Calculate Dew Point (an approximation, potentially not fully robust without more context on formula usage)
+          // This part was commented out in the previous revision, keeping the logic but also noting it.
+          // let dewPoint = 'N/A';
+          // if (typeof tempCelsius === 'number' && typeof humidity === 'number') {
+          //   const a = 17.27;
+          //   const b = 237.7;
+          //   const gamma = (a * tempCelsius) / (b + tempCelsius) + Math.log(humidity / 100);
+          //   dewPoint = (b * gamma) / (a - gamma);
+          //   dewPoint = dewPoint.toFixed(2) + '°C';
+          // }
+
+          // Update the result div with formatted weather information
+          resultDiv.innerHTML = `
+            <h2>${cityName}, ${country}</h2>
+            <p><strong>Temperature:</strong> ${tempCelsius}°C</p>
+            <p><strong>Weather:</strong> ${description.charAt(0).toUpperCase() + description.slice(1)}</p>
+            <p><strong>Humidity:</strong> ${humidity}%</p>
+            <p><strong>Wind:</strong> ${windSpeed} m/s</p>
+            <p><strong>Pressure:</strong> ${pressure} hPa</p>
+            <p><strong>Visibility:</strong> ${visibilityKm} km</p>
+            `;
+        } else {
+          // If API returns an error code, display the error message from the API
+          resultDiv.innerHTML = `<p style="color:red;">Error: ${data.message || 'City not found or invalid request'}</p>`;
+        }
+      } catch (error) {
+        // Catch any network or other errors during the fetch operation
+        console.error("Error fetching weather data:", error);
+        resultDiv.innerHTML = `<p style="color:red;">An error occurred while fetching weather data. Please try again.</p>`;
+      }
+    }
+
+    /**
+     * Event listener that runs when the DOM is fully loaded.
+     * Initializes the input field and displays the initial prompt.
+     */
+    document.addEventListener('DOMContentLoaded', (event) => {
+      const cityInput = document.getElementById("cityInput");
+      cityInput.value = ""; // Clear the input field on page load
+      cityInput.focus(); // Set focus to the input field
+
+     
+    });
+
+    /**
+     * Clears the weather results and resets the input field.
+     * Displays the "Please enter a city name." prompt again.
+     */
+    function clearResult() {
+      // Display the prompt message in the result area
+      document.getElementById("result").innerHTML = `<p style="color:orange;">Please enter a city name.</p>`;
+      document.getElementById("cityInput").value = ''; // Clear the input field
+      document.getElementById("cityInput").focus(); // Set focus back to the input field
+    }
+  </script>
+</body>
+</html>
